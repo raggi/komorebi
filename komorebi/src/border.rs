@@ -83,7 +83,7 @@ impl Border {
         BORDER_HWND.store(hwnd.0, Ordering::SeqCst);
 
         if *WINDOWS_11 {
-            WindowsApi::round_corners(hwnd.0)?;
+            // WindowsApi::round_corners(hwnd.0)?;
         }
 
         Ok(())
@@ -111,8 +111,8 @@ impl Border {
             }
 
             let mut rect = WindowsApi::window_rect(window.hwnd())?;
-            rect.top -= invisible_borders.bottom;
-            rect.bottom += invisible_borders.bottom;
+            // rect.top -= invisible_borders.bottom;
+            // rect.bottom += invisible_borders.bottom;
 
             let border_overflows = BORDER_OVERFLOW_IDENTIFIERS.lock();
             let regex_identifiers = REGEX_IDENTIFIERS.lock();
