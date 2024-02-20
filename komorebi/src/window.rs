@@ -30,7 +30,6 @@ use crate::windows_api::WindowsApi;
 use crate::FLOAT_IDENTIFIERS;
 use crate::HIDDEN_HWNDS;
 use crate::HIDING_BEHAVIOUR;
-use crate::LAYERED_WHITELIST;
 use crate::MANAGE_IDENTIFIERS;
 use crate::NO_TITLEBAR;
 use crate::PERMAIGNORE_CLASSES;
@@ -490,15 +489,6 @@ fn window_is_eligible(
         return false;
     }
 
-    let layered_whitelist = LAYERED_WHITELIST.lock();
-    let allow_layered = should_act(
-        title,
-        exe_name,
-        class,
-        &layered_whitelist,
-        &regex_identifiers,
-    );
-
     // TODO: might need this for transparency
     // let allow_layered = true;
 
@@ -514,11 +504,6 @@ fn window_is_eligible(
 
     if (allow_wsl2_gui || allow_titlebar_removed || style.contains(WindowStyle::CAPTION) && ex_style.contains(ExtendedWindowStyle::WINDOWEDGE))
                         && !ex_style.contains(ExtendedWindowStyle::DLGMODALFRAME)
-                        // Get a lot of dupe events coming through that make the redrawing go crazy
-                        // on FocusChange events if I don't filter out this one. But, if we are
-                        // allowing a specific layered window on the whitelist (like Steam), it should
-                        // pass this check
-                        && (allow_layered || !ex_style.contains(ExtendedWindowStyle::LAYERED))
         || managed_override
     {
         return true;
