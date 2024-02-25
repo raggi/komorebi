@@ -56,7 +56,7 @@ use windows::Win32::UI::WindowsAndMessaging::WS_VSCROLL;
 
 // https://docs.microsoft.com/en-us/windows/win32/winmsg/window-styles
 bitflags! {
-    #[derive(Default)]
+    #[derive(Default, Debug)]
     pub struct WindowStyle: u32 {
         const BORDER = WS_BORDER.0;
         const CAPTION = WS_CAPTION.0;
@@ -90,7 +90,7 @@ bitflags! {
 
 // https://docs.microsoft.com/en-us/windows/win32/winmsg/extended-window-styles
 bitflags! {
-    #[derive(Default)]
+    #[derive(Default, Debug)]
     pub struct ExtendedWindowStyle: u32 {
         const ACCEPTFILES = WS_EX_ACCEPTFILES.0;
         const APPWINDOW = WS_EX_APPWINDOW.0;

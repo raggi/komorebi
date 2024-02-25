@@ -388,6 +388,10 @@ impl Window {
         WindowsApi::real_window_class_w(self.hwnd())
     }
 
+    pub fn is_visible(self) -> bool {
+        WindowsApi::is_window_visible(self.hwnd())
+    }
+
     pub fn is_cloaked(self) -> Result<bool> {
         WindowsApi::is_window_cloaked(self.hwnd())
     }

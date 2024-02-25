@@ -103,6 +103,16 @@ impl WindowManagerEvent {
     }
 
     pub fn from_win_event(winevent: WinEvent, window: Window) -> Option<Self> {
+
+        if window.is_window() && !window.is_cloaked().unwrap_or(true) && window.is_visible() {
+            let title = &window.title().ok()?;
+            let exe_name = &window.exe().ok()?;
+            let class = &window.class().ok()?;
+            let style = &window.style().ok()?;
+            let ex_style = &window.ex_style().ok()?;
+            tracing::info!("WinEvent: {:?} title={title} exe={exe_name} class={class} style={style:?} exstyle={ex_style:?}", winevent);
+        }
+
         match winevent {
             WinEvent::ObjectDestroy => Option::from(Self::Destroy(winevent, window)),
 
@@ -125,6 +135,7 @@ impl WindowManagerEvent {
             WinEvent::SystemCaptureStart | WinEvent::SystemCaptureEnd => {
                 Option::from(Self::MouseCapture(winevent, window))
             }
+
             WinEvent::ObjectNameChange => {
                 // Some apps like Firefox don't send ObjectCreate or ObjectShow on launch
                 // This spams the message queue, but I don't know what else to do. On launch
