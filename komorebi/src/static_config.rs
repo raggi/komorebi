@@ -1,4 +1,4 @@
-use crate::border::Border;
+use crate::border_window;
 use crate::colour::Colour;
 use crate::current_virtual_desktop;
 use crate::monitor::Monitor;
@@ -11,8 +11,6 @@ use crate::BORDER_COLOUR_CURRENT;
 use crate::BORDER_COLOUR_MONOCLE;
 use crate::BORDER_COLOUR_SINGLE;
 use crate::BORDER_COLOUR_STACK;
-use crate::BORDER_ENABLED;
-use crate::BORDER_HWND;
 use crate::BORDER_OFFSET;
 use crate::BORDER_OVERFLOW_IDENTIFIERS;
 use crate::BORDER_WIDTH;
@@ -377,7 +375,7 @@ impl From<&WindowManager> for StaticConfig {
             app_specific_configuration_path: None,
             border_width: Option::from(BORDER_WIDTH.load(Ordering::SeqCst)),
             border_offset: Option::from(BORDER_OFFSET.load(Ordering::SeqCst)),
-            active_window_border: Option::from(BORDER_ENABLED.load(Ordering::SeqCst)),
+            active_window_border: Option::from(border_window().is_enabled()),
             active_window_border_colours: border_colours,
             default_workspace_padding: Option::from(
                 DEFAULT_WORKSPACE_PADDING.load(Ordering::SeqCst),
@@ -799,11 +797,7 @@ impl StaticConfig {
         }
 
         if value.active_window_border == Some(true) {
-            if BORDER_HWND.load(Ordering::SeqCst) == 0 {
-                Border::create("komorebi-border-window")?;
-            }
-
-            BORDER_ENABLED.store(true, Ordering::SeqCst);
+            border_window().enable();
             wm.show_border()?;
         }
 
@@ -849,14 +843,8 @@ impl StaticConfig {
         }
 
         if value.active_window_border == Some(true) {
-            if BORDER_HWND.load(Ordering::SeqCst) == 0 {
-                Border::create("komorebi-border-window")?;
-            }
-
-            BORDER_ENABLED.store(true, Ordering::SeqCst);
             wm.show_border()?;
         } else {
-            BORDER_ENABLED.store(false, Ordering::SeqCst);
             wm.hide_border()?;
         }
 

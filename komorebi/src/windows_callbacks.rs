@@ -41,7 +41,6 @@ use crate::window_manager_event::WindowManagerEvent;
 use crate::windows_api::WindowsApi;
 use crate::winevent_listener;
 use crate::BORDER_COLOUR_CURRENT;
-use crate::BORDER_RECT;
 use crate::BORDER_WIDTH;
 use crate::DISPLAY_INDEX_PREFERENCES;
 use crate::MONITOR_INDEX_PREFERENCES;
@@ -210,7 +209,7 @@ pub extern "system" fn border_window(
     unsafe {
         match message {
             WM_PAINT => {
-                let border_rect = *BORDER_RECT.lock();
+                let border_rect = crate::border_window().rect();
                 let mut ps = PAINTSTRUCT::default();
                 let hdc = BeginPaint(window, &mut ps);
                 let hpen = CreatePen(

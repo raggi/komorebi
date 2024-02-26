@@ -37,7 +37,7 @@ use komorebi_core::StateQuery;
 use komorebi_core::WindowContainerBehaviour;
 use komorebi_core::WindowKind;
 
-use crate::border::Border;
+use crate::border_window;
 use crate::colour::Rgb;
 use crate::current_virtual_desktop;
 use crate::notify_subscribers;
@@ -52,9 +52,6 @@ use crate::BORDER_COLOUR_CURRENT;
 use crate::BORDER_COLOUR_MONOCLE;
 use crate::BORDER_COLOUR_SINGLE;
 use crate::BORDER_COLOUR_STACK;
-use crate::BORDER_ENABLED;
-use crate::BORDER_HIDDEN;
-use crate::BORDER_HWND;
 use crate::BORDER_OFFSET;
 use crate::BORDER_OVERFLOW_IDENTIFIERS;
 use crate::BORDER_WIDTH;
@@ -172,9 +169,7 @@ impl WindowManager {
             | SocketMessage::FocusMonitorWorkspaceNumber(_, _)
             | SocketMessage::FocusWorkspaceNumber(_) => {
                 if self.focused_workspace()?.visible_windows().is_empty() {
-                    let border = Border::from(BORDER_HWND.load(Ordering::SeqCst));
-                    border.hide()?;
-                    BORDER_HIDDEN.store(true, Ordering::SeqCst);
+                    border_window().hide()?;
                 }
             }
             _ => {}
@@ -618,9 +613,7 @@ impl WindowManager {
 
                 self.focus_workspace(workspace_idx)?;
 
-                if BORDER_ENABLED.load(Ordering::SeqCst) {
-                    self.show_border()?;
-                };
+                self.show_border()?;
             }
             SocketMessage::FocusLastWorkspace => {
                 // This is to ensure that even on an empty workspace on a secondary monitor, the
@@ -645,9 +638,7 @@ impl WindowManager {
                     .ok_or_else(|| anyhow!("there is no monitor"))?
                     .set_last_focused_workspace(Option::from(idx));
 
-                if BORDER_ENABLED.load(Ordering::SeqCst) {
-                    self.show_border()?;
-                };
+                self.show_border()?;
             }
             SocketMessage::FocusWorkspaceNumber(workspace_idx) => {
                 // This is to ensure that even on an empty workspace on a secondary monitor, the
@@ -659,9 +650,7 @@ impl WindowManager {
 
                 self.focus_workspace(workspace_idx)?;
 
-                if BORDER_ENABLED.load(Ordering::SeqCst) {
-                    self.show_border()?;
-                };
+                self.show_border()?;
             }
             SocketMessage::FocusWorkspaceNumbers(workspace_idx) => {
                 // This is to ensure that even on an empty workspace on a secondary monitor, the
@@ -682,9 +671,7 @@ impl WindowManager {
 
                 self.focus_workspace(workspace_idx)?;
 
-                if BORDER_ENABLED.load(Ordering::SeqCst) {
-                    self.show_border()?;
-                };
+                self.show_border()?;
             }
             SocketMessage::FocusMonitorWorkspaceNumber(monitor_idx, workspace_idx) => {
                 self.focus_monitor(monitor_idx)?;
@@ -698,9 +685,7 @@ impl WindowManager {
                     self.focus_workspace(workspace_idx)?;
                 }
 
-                if BORDER_ENABLED.load(Ordering::SeqCst) {
-                    self.show_border()?;
-                };
+                self.show_border()?;
             }
             SocketMessage::Stop => {
                 tracing::info!(
@@ -1216,15 +1201,9 @@ impl WindowManager {
             }
             SocketMessage::ActiveWindowBorder(enable) => {
                 if enable {
-                    if BORDER_HWND.load(Ordering::SeqCst) == 0 {
-                        Border::create("komorebi-border-window")?;
-                    }
-
-                    BORDER_ENABLED.store(true, Ordering::SeqCst);
-                    self.show_border()?;
+                    border_window().enable();
                 } else {
-                    BORDER_ENABLED.store(false, Ordering::SeqCst);
-                    self.hide_border()?;
+                    border_window().disable();
                 }
             }
             SocketMessage::ActiveWindowBorderColour(kind, r, g, b) => {
@@ -1241,15 +1220,15 @@ impl WindowManager {
                     }
                 }
 
-                WindowsApi::invalidate_border_rect()?;
+                border_window().invalidate_rect()?;
             }
             SocketMessage::ActiveWindowBorderWidth(width) => {
                 BORDER_WIDTH.store(width, Ordering::SeqCst);
-                WindowsApi::invalidate_border_rect()?;
+                border_window().invalidate_rect()?;
             }
             SocketMessage::ActiveWindowBorderOffset(offset) => {
                 BORDER_OFFSET.store(offset, Ordering::SeqCst);
-                WindowsApi::invalidate_border_rect()?;
+                border_window().invalidate_rect()?;
             }
             SocketMessage::AltFocusHack(_) => {
                 tracing::info!("this action is deprecated");
@@ -1390,31 +1369,28 @@ impl WindowManager {
                         .store(stack, Ordering::SeqCst);
                 }
 
-                let border = Border::from(BORDER_HWND.load(Ordering::SeqCst));
-                border.set_position(foreground_window, false)?;
+                border_window().set_position(foreground_window, false)?;
             }
             SocketMessage::TogglePause => {
                 let is_paused = self.is_paused;
-                let border = Border::from(BORDER_HWND.load(Ordering::SeqCst));
 
                 if is_paused {
-                    border.hide()?;
+                    border_window().hide()?;
                 } else {
                     let focused = self.focused_window()?;
-                    border.set_position(*focused, true)?;
+                    border_window().set_position(*focused, true)?;
                     focused.focus(false)?;
                 }
             }
             SocketMessage::ToggleTiling | SocketMessage::WorkspaceTiling(..) => {
                 let tiling_enabled = *self.focused_workspace_mut()?.tile();
-                let border = Border::from(BORDER_HWND.load(Ordering::SeqCst));
 
                 if tiling_enabled {
                     let focused = self.focused_window()?;
-                    border.set_position(*focused, true)?;
+                    border_window().set_position(*focused, true)?;
                     focused.focus(false)?;
                 } else {
-                    border.hide()?;
+                    border_window().hide()?;
                 }
             }
             _ => {}

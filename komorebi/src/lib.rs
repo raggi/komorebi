@@ -21,6 +21,7 @@ pub mod winevent;
 pub mod winevent_listener;
 pub mod workspace;
 
+use border::BorderWindow;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::fs::File;
@@ -34,6 +35,7 @@ use std::sync::atomic::AtomicIsize;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::OnceLock;
 
 pub use hidden::*;
 pub use process_command::*;
@@ -189,9 +191,6 @@ lazy_static! {
         )
     };
 
-    static ref BORDER_RECT: Arc<Mutex<Rect>> =
-        Arc::new(Mutex::new(Rect::default()));
-
     static ref BORDER_OFFSET: AtomicI32 = Default::default();
 
     // Use app-specific titlebar removal options where possible
@@ -205,9 +204,6 @@ pub static DEFAULT_CONTAINER_PADDING: AtomicI32 = AtomicI32::new(10);
 pub static INITIAL_CONFIGURATION_LOADED: AtomicBool = AtomicBool::new(false);
 pub static CUSTOM_FFM: AtomicBool = AtomicBool::new(false);
 pub static SESSION_ID: AtomicU32 = AtomicU32::new(0);
-pub static BORDER_ENABLED: AtomicBool = AtomicBool::new(false);
-pub static BORDER_HWND: AtomicIsize = AtomicIsize::new(0);
-pub static BORDER_HIDDEN: AtomicBool = AtomicBool::new(false);
 pub static BORDER_COLOUR_SINGLE: AtomicU32 = AtomicU32::new(0);
 pub static BORDER_COLOUR_STACK: AtomicU32 = AtomicU32::new(0);
 pub static BORDER_COLOUR_MONOCLE: AtomicU32 = AtomicU32::new(0);
@@ -218,6 +214,12 @@ pub const TRANSPARENCY_COLOUR: u32 = 0;
 pub static REMOVE_TITLEBARS: AtomicBool = AtomicBool::new(false);
 
 pub static HIDDEN_HWND: AtomicIsize = AtomicIsize::new(0);
+
+static BORDER_WINDOW: OnceLock<BorderWindow> = OnceLock::new();
+
+pub fn border_window() -> &'static BorderWindow {
+    BORDER_WINDOW.get_or_init(move || BorderWindow::new("komorebi-border-window").expect("Creating border window"))
+}
 
 #[must_use]
 pub fn current_virtual_desktop() -> Option<Vec<u8>> {

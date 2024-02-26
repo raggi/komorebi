@@ -18,13 +18,7 @@ use crate::TRANSPARENCY_COLOUR;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Hidden {
-    pub(crate) hwnd: isize,
-}
-
-impl From<isize> for Hidden {
-    fn from(hwnd: isize) -> Self {
-        Self { hwnd }
-    }
+    hwnd: isize,
 }
 
 impl Hidden {
@@ -51,7 +45,7 @@ impl Hidden {
         let name_cl = name.clone();
         std::thread::spawn(move || -> Result<()> {
             let hwnd = WindowsApi::create_hidden_window(PCWSTR(name_cl.as_ptr()), instance)?;
-            let hidden = Self::from(hwnd);
+            let hidden = Self{hwnd};
 
             let mut message = MSG::default();
 

@@ -12,7 +12,7 @@ use komorebi_core::Rect;
 use komorebi_core::Sizing;
 use komorebi_core::WindowContainerBehaviour;
 
-use crate::border::Border;
+use crate::border_window;
 use crate::current_virtual_desktop;
 use crate::notify_subscribers;
 use crate::window::should_act;
@@ -25,9 +25,6 @@ use crate::BORDER_COLOUR_CURRENT;
 use crate::BORDER_COLOUR_MONOCLE;
 use crate::BORDER_COLOUR_SINGLE;
 use crate::BORDER_COLOUR_STACK;
-use crate::BORDER_ENABLED;
-use crate::BORDER_HIDDEN;
-use crate::BORDER_HWND;
 use crate::DATA_DIR;
 use crate::HIDDEN_HWNDS;
 use crate::REGEX_IDENTIFIERS;
@@ -511,17 +508,13 @@ impl WindowManager {
         };
 
         if !self.focused_workspace()?.tile() {
-            let border = Border::from(BORDER_HWND.load(Ordering::SeqCst));
-            border.hide()?;
-            BORDER_HIDDEN.store(true, Ordering::SeqCst);
+            border_window().hide()?;
         }
 
-        if *self.focused_workspace()?.tile() && BORDER_ENABLED.load(Ordering::SeqCst) {
+        if *self.focused_workspace()?.tile() && border_window().is_enabled() {
             match event {
                 WindowManagerEvent::MoveResizeStart(_, _) => {
-                    let border = Border::from(BORDER_HWND.load(Ordering::SeqCst));
-                    border.hide()?;
-                    BORDER_HIDDEN.store(true, Ordering::SeqCst);
+                    border_window().hide()?;
                 }
                 WindowManagerEvent::MoveResizeEnd(_, window)
                 | WindowManagerEvent::Show(_, window)
@@ -529,7 +522,6 @@ impl WindowManager {
                 | WindowManagerEvent::Hide(_, window)
                 | WindowManagerEvent::Uncloak(_, window)
                 | WindowManagerEvent::Minimize(_, window) => {
-                    let border = Border::from(BORDER_HWND.load(Ordering::SeqCst));
                     let mut target_window = None;
                     let mut target_window_is_monocle = false;
                     if self
@@ -539,7 +531,6 @@ impl WindowManager {
                         .any(|w| w.hwnd == window.hwnd)
                     {
                         target_window = Option::from(*window);
-                        WindowsApi::raise_window(border.hwnd())?;
                     };
 
                     if let Some(monocle_container) = self.focused_workspace()?.monocle_container() {
@@ -553,7 +544,7 @@ impl WindowManager {
                         match self.focused_container() {
                             // if there is no focused container, the desktop is empty
                             Err(..) => {
-                                WindowsApi::hide_border_window(border.hwnd())?;
+                                border_window().hide()?;
                             }
                             Ok(container) => {
                                 if !(matches!(event, WindowManagerEvent::Minimize(_, _))
@@ -584,14 +575,8 @@ impl WindowManager {
                     }
 
                     if let Some(target_window) = target_window {
-                        let activate = BORDER_HIDDEN.load(Ordering::SeqCst);
-
-                        WindowsApi::invalidate_border_rect()?;
-                        border.set_position(target_window, activate)?;
-
-                        if activate {
-                            BORDER_HIDDEN.store(false, Ordering::SeqCst);
-                        }
+                        border_window().invalidate_rect()?;
+                        border_window().set_position(target_window, true)?;
                     }
                 }
                 _ => {}
@@ -605,9 +590,7 @@ impl WindowManager {
 
         // If there are no more windows on the workspace, we shouldn't show the border window
         if self.focused_workspace()?.containers().is_empty() {
-            let border = Border::from(BORDER_HWND.load(Ordering::SeqCst));
-            border.hide()?;
-            BORDER_HIDDEN.store(true, Ordering::SeqCst);
+            border_window().hide()?;
         }
 
         tracing::trace!("updating list of known hwnds");

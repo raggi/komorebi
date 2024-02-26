@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 use std::convert::TryFrom;
 use std::ffi::c_void;
-use std::sync::atomic::Ordering;
 
 use color_eyre::eyre::anyhow;
 use color_eyre::eyre::Error;
@@ -54,8 +53,6 @@ use windows::Win32::System::Threading::PROCESS_ACCESS_RIGHTS;
 use windows::Win32::System::Threading::PROCESS_NAME_WIN32;
 use windows::Win32::System::Threading::PROCESS_QUERY_INFORMATION;
 use windows::Win32::UI::HiDpi::GetDpiForMonitor;
-use windows::Win32::UI::HiDpi::GetDpiForSystem;
-use windows::Win32::UI::HiDpi::GetDpiForWindow;
 use windows::Win32::UI::HiDpi::SetProcessDpiAwarenessContext;
 use windows::Win32::UI::HiDpi::DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2;
 use windows::Win32::UI::HiDpi::MDT_EFFECTIVE_DPI;
@@ -103,7 +100,6 @@ use windows::Win32::UI::WindowsAndMessaging::GWL_EXSTYLE;
 use windows::Win32::UI::WindowsAndMessaging::GWL_STYLE;
 use windows::Win32::UI::WindowsAndMessaging::GW_HWNDNEXT;
 use windows::Win32::UI::WindowsAndMessaging::HWND_BOTTOM;
-use windows::Win32::UI::WindowsAndMessaging::HWND_NOTOPMOST;
 use windows::Win32::UI::WindowsAndMessaging::HWND_TOP;
 use windows::Win32::UI::WindowsAndMessaging::LWA_ALPHA;
 use windows::Win32::UI::WindowsAndMessaging::LWA_COLORKEY;
@@ -141,7 +137,6 @@ use crate::monitor::Monitor;
 use crate::ring::Ring;
 use crate::set_window_position::SetWindowPosition;
 use crate::windows_callbacks;
-use crate::BORDER_HWND;
 use crate::TRANSPARENCY_COLOUR;
 
 pub enum WindowsResult<T, E> {
@@ -179,7 +174,7 @@ pub trait ProcessWindowsCrateResult<T> {
     fn process(self) -> Result<T>;
 }
 
-macro_rules! impl_process_windows_crate_integer_wrapper_result {
+macro_rules! impl_process_windows_crate_zero_error_result {
     ( $($input:ty => $deref:ty),+ $(,)? ) => (
         paste::paste! {
             $(
@@ -197,7 +192,7 @@ macro_rules! impl_process_windows_crate_integer_wrapper_result {
     );
 }
 
-impl_process_windows_crate_integer_wrapper_result!(
+impl_process_windows_crate_zero_error_result!(
     HWND => isize,
 );
 
@@ -367,45 +362,8 @@ impl WindowsApi {
         unsafe { BringWindowToTop(hwnd) }.process()
     }
 
-    pub fn raise_window(hwnd: HWND) -> Result<()> {
-        let flags = SetWindowPosition::NO_MOVE;
-
-        let position = HWND_TOP;
-        Self::set_window_pos(hwnd, &Rect::default(), position, flags.bits())
-    }
-
-    pub fn position_border_window(hwnd: HWND, layout: &Rect, activate: bool) -> Result<()> {
-        let flags = if activate {
-            SetWindowPosition::SHOW_WINDOW | SetWindowPosition::NO_ACTIVATE
-        } else {
-            SetWindowPosition::NO_ACTIVATE
-        };
-
-        // TODO(raggi): This leaves the window behind the active window, which
-        // can result e.g. single pixel window borders being invisible in the
-        // case of opaque window borders (e.g. EPIC Games Launcher). Ideally
-        // we'd be able to pass a parent window to place ourselves just in front
-        // of, however the SetWindowPos API explicitly ignores that parameter
-        // unless the window being positioned is being activated - and we don't
-        // want to activate the border window here. We can hopefully find a
-        // better workaround in the future.
-        // The trade-off chosen prevents the border window from sitting over the
-        // top of other pop-up dialogs such as a file picker dialog from
-        // Firefox. When adjusting this in the future, it's important to check
-        // those dialog cases.
-        let position = HWND_NOTOPMOST;
-        Self::set_window_pos(hwnd, layout, position, flags.bits())
-    }
-
-    pub fn hide_border_window(hwnd: HWND) -> Result<()> {
-        let flags = SetWindowPosition::HIDE_WINDOW;
-
-        let position = HWND_BOTTOM;
-        Self::set_window_pos(hwnd, &Rect::default(), position, flags.bits())
-    }
-
     /// set_window_pos calls SetWindowPos without any accounting for Window decorations.
-    fn set_window_pos(hwnd: HWND, layout: &Rect, position: HWND, flags: u32) -> Result<()> {
+    pub fn set_window_pos(hwnd: HWND, layout: &Rect, position: HWND, flags: u32) -> Result<()> {
         unsafe {
             SetWindowPos(
                 hwnd,
@@ -953,8 +911,8 @@ impl WindowsApi {
         .process()
     }
 
-    pub fn invalidate_border_rect() -> Result<()> {
-        unsafe { InvalidateRect(HWND(BORDER_HWND.load(Ordering::SeqCst)), None, false) }
+    pub fn invalidate_rect(hwnd: HWND) -> Result<()> {
+        unsafe { InvalidateRect(hwnd, None, false) }
             .ok()
             .process()
     }

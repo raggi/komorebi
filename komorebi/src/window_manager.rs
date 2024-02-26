@@ -35,7 +35,7 @@ use komorebi_core::Rect;
 use komorebi_core::Sizing;
 use komorebi_core::WindowContainerBehaviour;
 
-use crate::border::Border;
+use crate::border_window;
 use crate::container::Container;
 use crate::current_virtual_desktop;
 use crate::load_configuration;
@@ -47,7 +47,6 @@ use crate::window_manager_event::WindowManagerEvent;
 use crate::windows_api::WindowsApi;
 use crate::winevent_listener;
 use crate::workspace::Workspace;
-use crate::BORDER_HWND;
 use crate::BORDER_OVERFLOW_IDENTIFIERS;
 use crate::DATA_DIR;
 use crate::DISPLAY_INDEX_PREFERENCES;
@@ -214,17 +213,12 @@ impl WindowManager {
         let foreground = WindowsApi::foreground_window()?;
         let foreground_window = Window { hwnd: foreground };
 
-        let border = Border::from(BORDER_HWND.load(Ordering::SeqCst));
-        border.set_position(foreground_window, true)?;
-        WindowsApi::invalidate_border_rect()
+        border_window().set_position(foreground_window, true)
     }
 
     #[tracing::instrument(skip(self))]
     pub fn hide_border(&self) -> Result<()> {
-        let focused = self.focused_window()?;
-        let border = Border::from(BORDER_HWND.load(Ordering::SeqCst));
-        border.hide()?;
-        focused.focus(false)
+        border_window().hide()
     }
 
     #[tracing::instrument]
