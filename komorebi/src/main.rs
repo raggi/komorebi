@@ -71,34 +71,6 @@ fn setup() -> Result<(WorkerGuard, WorkerGuard)> {
             ),
     )?;
 
-    // https://github.com/tokio-rs/tracing/blob/master/examples/examples/panic_hook.rs
-    // Set a panic hook that records the panic as a `tracing` event at the
-    // `ERROR` verbosity level.
-    //
-    // If we are currently in a span when the panic occurred, the logged event
-    // will include the current span, allowing the context in which the panic
-    // occurred to be recorded.
-    std::panic::set_hook(Box::new(|panic| {
-        // If the panic has a source location, record it as structured fields.
-        panic.location().map_or_else(
-            || {
-                tracing::error!(message = %panic);
-            },
-            |location| {
-                // On nightly Rust, where the `PanicInfo` type also exposes a
-                // `message()` method returning just the message, we could record
-                // just the message instead of the entire `fmt::Display`
-                // implementation, avoiding the duplciated location
-                tracing::error!(
-                    message = %panic,
-                    panic.file = location.file(),
-                    panic.line = location.line(),
-                    panic.column = location.column(),
-                );
-            },
-        );
-    }));
-
     Ok((guard, color_guard))
 }
 
