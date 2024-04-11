@@ -220,6 +220,12 @@ impl Window {
     }
 
     pub fn focus(self, mouse_follows_focus: bool) -> Result<()> {
+        if let Ok(window) = WindowsApi::foreground_window() {
+            if HWND(window) == self.hwnd() {
+                return Ok(());
+            }
+        }
+
         // Raise Window to foreground
         unsafe {
             SetWindowPos(self.hwnd(), HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE)?;
