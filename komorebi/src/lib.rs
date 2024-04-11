@@ -76,6 +76,11 @@ lazy_static! {
             id: String::from("steam.exe"),
             matching_strategy: Option::from(MatchingStrategy::Equals),
         }),
+        MatchingRule::Simple(IdWithIdentifier {
+            kind: ApplicationIdentifier::Exe,
+            id: String::from("Code.exe"),
+            matching_strategy: Option::from(MatchingStrategy::Equals),
+        }),
     ]));
     static ref TRAY_AND_MULTI_WINDOW_IDENTIFIERS: Arc<Mutex<Vec<MatchingRule>>> =
         Arc::new(Mutex::new(vec![
