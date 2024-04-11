@@ -200,8 +200,8 @@ impl Stackbar {
         })
     }
 
-    pub fn set_position(&self, layout: &Rect, top: bool) -> Result<()> {
-        WindowsApi::position_window(self.hwnd(), layout, top)
+    pub fn set_position(&self, layout: &Rect) -> Result<()> {
+        WindowsApi::position_window(self.hwnd(), layout)
     }
 
     pub fn get_position_from_container_layout(&self, layout: &Rect) -> Rect {

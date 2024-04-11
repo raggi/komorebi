@@ -134,20 +134,17 @@ impl Window {
         let half_width = work_area.right / 2;
         let half_weight = work_area.bottom / 2;
 
-        self.set_position(
-            &Rect {
-                left: work_area.left + ((work_area.right - half_width) / 2),
-                top: work_area.top + ((work_area.bottom - half_weight) / 2),
-                right: half_width,
-                bottom: half_weight,
-            },
-            true,
-        )
+        self.set_position(&Rect {
+            left: work_area.left + ((work_area.right - half_width) / 2),
+            top: work_area.top + ((work_area.bottom - half_weight) / 2),
+            right: half_width,
+            bottom: half_weight,
+        })
     }
 
-    pub fn set_position(&mut self, layout: &Rect, top: bool) -> Result<()> {
+    pub fn set_position(&mut self, layout: &Rect) -> Result<()> {
         let rect = *layout;
-        WindowsApi::position_window(self.hwnd(), &rect, top)
+        WindowsApi::position_window(self.hwnd(), &rect)
     }
 
     pub fn is_maximized(self) -> bool {

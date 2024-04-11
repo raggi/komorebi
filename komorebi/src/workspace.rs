@@ -268,7 +268,7 @@ impl Workspace {
                         let width = BORDER_WIDTH.load(Ordering::SeqCst);
                         adjusted_work_area.add_padding(width);
                     }
-                    window.set_position(&adjusted_work_area, true)?;
+                    window.set_position(&adjusted_work_area)?;
                 };
             } else if let Some(window) = self.maximized_window_mut() {
                 window.maximize();
@@ -329,7 +329,6 @@ impl Workspace {
                         if let Some(stackbar) = container_topbar {
                             stackbar.set_position(
                                 &stackbar.get_position_from_container_layout(layout),
-                                false,
                             )?;
 
                             stackbar.update(&container_windows, focused_hwnd)?;
@@ -340,7 +339,7 @@ impl Workspace {
                             rect.bottom -= total_height;
                         }
 
-                        window.set_position(&rect, false)?;
+                        window.set_position(&rect)?;
                     }
                 }
 

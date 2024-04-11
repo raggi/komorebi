@@ -346,7 +346,7 @@ impl WindowsApi {
     /// position window resizes the target window to the given layout, adjusting
     /// the layout to account for any window shadow borders (the window painted
     /// region will match layout on completion).
-    pub fn position_window(hwnd: HWND, layout: &Rect, top: bool) -> Result<()> {
+    pub fn position_window(hwnd: HWND, layout: &Rect) -> Result<()> {
         let flags = SetWindowPosition::NO_ACTIVATE
             | SetWindowPosition::NO_SEND_CHANGING
             | SetWindowPosition::NO_COPY_BITS
@@ -360,7 +360,7 @@ impl WindowsApi {
             bottom: layout.bottom + shadow_rect.bottom,
         };
 
-        let position = if top { HWND_TOP } else { HWND_NOTOPMOST };
+        let position = HWND_TOP;
         Self::set_window_pos(hwnd, &rect, position, flags.bits())
     }
 
