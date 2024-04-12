@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use color_eyre::eyre::anyhow;
 use color_eyre::Result;
-use crossbeam_channel::select;
 use parking_lot::Mutex;
 
 use komorebi_core::OperationDirection;
@@ -42,14 +41,10 @@ pub fn listen_for_events(wm: Arc<Mutex<WindowManager>>) {
     std::thread::spawn(move || {
         tracing::info!("listening");
         loop {
-            select! {
-                recv(receiver) -> mut maybe_event => {
-                    if let Ok(event) = maybe_event.as_mut() {
-                        match wm.lock().process_event(event) {
-                            Ok(()) => {},
-                            Err(error) => tracing::error!("{}", error)
-                        }
-                    }
+            if let Ok(event) = receiver.recv() {
+                match wm.lock().process_event(event) {
+                    Ok(()) => {}
+                    Err(error) => tracing::error!("{}", error),
                 }
             }
         }
@@ -59,7 +54,7 @@ pub fn listen_for_events(wm: Arc<Mutex<WindowManager>>) {
 impl WindowManager {
     #[allow(clippy::too_many_lines, clippy::cognitive_complexity)]
     #[tracing::instrument(skip(self))]
-    pub fn process_event(&mut self, event: &mut WindowManagerEvent) -> Result<()> {
+    pub fn process_event(&mut self, event: WindowManagerEvent) -> Result<()> {
         if self.is_paused {
             tracing::trace!("ignoring while paused");
             return Ok(());
@@ -85,7 +80,7 @@ impl WindowManager {
             | WindowManagerEvent::MoveResizeEnd(_, window) => {
                 self.reconcile_monitors()?;
 
-                let monitor_idx = self.monitor_idx_from_window(*window)
+                let monitor_idx = self.monitor_idx_from_window(window)
                     .ok_or_else(|| anyhow!("there is no monitor associated with this window, it may have already been destroyed"))?;
 
                 // This is a hidden window apparently associated with COM support mechanisms (based
@@ -291,14 +286,14 @@ impl WindowManager {
                 if !workspace.contains_window(window.hwnd) {
                     match behaviour {
                         WindowContainerBehaviour::Create => {
-                            workspace.new_container_for_window(*window);
+                            workspace.new_container_for_window(window);
                             self.update_focused_workspace(false)?;
                         }
                         WindowContainerBehaviour::Append => {
                             workspace
                                 .focused_container_mut()
                                 .ok_or_else(|| anyhow!("there is no focused container"))?
-                                .add_window(*window);
+                                .add_window(window);
                             self.update_focused_workspace(true)?;
                         }
                     }
@@ -569,7 +564,7 @@ impl WindowManager {
                         .iter()
                         .any(|w| w.hwnd == window.hwnd)
                     {
-                        target_window = Option::from(*window);
+                        target_window = Option::from(window);
                         WindowsApi::raise_window(border.hwnd())?;
                     };
 
@@ -662,7 +657,7 @@ impl WindowManager {
 
         serde_json::to_writer_pretty(&file, &known_hwnds)?;
         notify_subscribers(&serde_json::to_string(&Notification {
-            event: NotificationEvent::WindowManager(*event),
+            event: NotificationEvent::WindowManager(event),
             state: self.as_ref().into(),
         })?)?;
 
