@@ -812,7 +812,7 @@ impl WindowManager {
                 if let Some(window) = container.focused_window() {
                     window.focus(self.mouse_follows_focus)?;
                 }
-            } else if let Ok(window) = self.focused_window_mut() {
+            } else if let Ok(window) = self.focused_window() {
                 window.focus(self.mouse_follows_focus)?;
             } else {
                 let desktop_window = Window {
@@ -843,7 +843,7 @@ impl WindowManager {
                 // and we don't have a monocle container
                 && self.focused_workspace()?.monocle_container().is_none()
             {
-                if let Ok(window) = self.focused_window_mut() {
+                if let Ok(window) = self.focused_window() {
                     window.focus(self.mouse_follows_focus)?;
                 }
             }
@@ -1201,7 +1201,7 @@ impl WindowManager {
         // With this piece of code, we check if we have changed focus to a container stack with
         // a stackbar, and if we have, we run a quick update to make sure the focused text colour
         // has been applied
-        let focused_window = self.focused_window_mut()?;
+        let focused_window = self.focused_window()?;
         let focused_window_hwnd = focused_window.hwnd;
         focused_window.focus(self.mouse_follows_focus)?;
 
@@ -1371,7 +1371,7 @@ impl WindowManager {
         } else if monocle_next {
             self.toggle_monocle()?;
         } else {
-            self.focused_window_mut()?.focus(self.mouse_follows_focus)?;
+            self.focused_window()?.focus(self.mouse_follows_focus)?;
         }
 
         Ok(())
@@ -2296,12 +2296,6 @@ impl WindowManager {
     pub fn focused_window(&self) -> Result<&Window> {
         self.focused_container()?
             .focused_window()
-            .ok_or_else(|| anyhow!("there is no window"))
-    }
-
-    fn focused_window_mut(&mut self) -> Result<&mut Window> {
-        self.focused_container_mut()?
-            .focused_window_mut()
             .ok_or_else(|| anyhow!("there is no window"))
     }
 }

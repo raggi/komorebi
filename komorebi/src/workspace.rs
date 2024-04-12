@@ -179,7 +179,7 @@ impl Workspace {
         let mut to_focus = None;
 
         for (i, container) in self.containers_mut().iter_mut().enumerate() {
-            if let Some(window) = container.focused_window_mut() {
+            if let Some(window) = container.focused_window() {
                 if idx == i {
                     to_focus = Option::from(*window);
                 }
@@ -260,7 +260,7 @@ impl Workspace {
 
         if *self.tile() {
             if let Some(container) = self.monocle_container_mut() {
-                if let Some(window) = container.focused_window_mut() {
+                if let Some(window) = container.focused_window() {
                     adjusted_work_area.add_padding(container_padding.unwrap_or_default());
                     {
                         let border_offset = BORDER_OFFSET.load(Ordering::SeqCst);
@@ -270,7 +270,7 @@ impl Workspace {
                     }
                     window.set_position(&adjusted_work_area)?;
                 };
-            } else if let Some(window) = self.maximized_window_mut() {
+            } else if let Some(window) = self.maximized_window() {
                 window.maximize();
             } else if !self.containers().is_empty() {
                 let layouts = self.layout().as_boxed_arrangement().calculate(
@@ -303,7 +303,7 @@ impl Workspace {
                     let container_topbar = container.stackbar().clone();
 
                     if let (Some(window), Some(layout)) =
-                        (container.focused_window_mut(), layouts.get(i))
+                        (container.focused_window(), layouts.get(i))
                     {
                         if should_remove_titlebars && no_titlebar.contains(&window.exe()?) {
                             window.remove_title_bar()?;
@@ -360,7 +360,7 @@ impl Workspace {
         let mut hwnds = vec![];
         let mut floating_hwnds = vec![];
 
-        for window in self.visible_windows_mut().into_iter().flatten() {
+        for window in self.visible_windows().into_iter().flatten() {
             if !window.is_window() {
                 hwnds.push(window.hwnd);
             }
@@ -1174,15 +1174,6 @@ impl Workspace {
                     vec.push(details);
                 }
             }
-        }
-
-        vec
-    }
-
-    pub fn visible_windows_mut(&mut self) -> Vec<Option<&mut Window>> {
-        let mut vec = vec![];
-        for container in self.containers_mut() {
-            vec.push(container.focused_window_mut());
         }
 
         vec
