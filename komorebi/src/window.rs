@@ -73,10 +73,6 @@ impl Display for Window {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut display = format!("(hwnd: {}", self.hwnd);
 
-        if let Ok(title) = self.title() {
-            write!(display, ", title: {title}")?;
-        }
-
         if let Ok(exe) = self.exe() {
             write!(display, ", exe: {exe}")?;
         }
